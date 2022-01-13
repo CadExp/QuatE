@@ -19,6 +19,7 @@ class QubitE2(Model):
         self.rel_bi = nn.Embedding(self.config.relTotal, self.config.hidden_size)
         self.rel_psi = nn.Embedding(self.config.relTotal, self.config.hidden_size)
         self.criterion = nn.Softplus()
+        self.bce = nn.BCELoss()
         self.fc = nn.Linear(100, 50, bias=False)
         self.ent_dropout = torch.nn.Dropout(self.config.ent_dropout)
         self.rel_dropout = torch.nn.Dropout(self.config.rel_dropout)
@@ -72,18 +73,27 @@ class QubitE2(Model):
         C = h1 * r3 + r1 * h3 + h4 * r2 - r4 * h2
         D = h1 * r4 + r1 * h4 + h2 * r3 - r2 * h3
 
-        score_r = (A * t1 + B * t2 + C * t3 + D * t4)
+        # score_r = (A * t1 + B * t2 + C * t3 + D * t4)
         # print(score_r.size())
         # score_i = A * x_c + B * s_c + C * z_c - D * y_c
         # score_j = A * y_c - B * z_c + C * s_c + D * x_c
         # score_k = A * z_c + B * y_c - C * x_c + D * s_c
-        return -torch.sum(score_r, -1)
+        a = torch.sigmoid(A * t1)
+        b = torch.sigmoid(B * t2)
+        c = torch.sigmoid(C * t3)
+        d = torch.sigmoid(D * t4)
+        # return -torch.sum(score_r, -1)
+        return a, b, c, d
 
     def loss(self, score, regul, regul2):
         # self.batch_y = ((1.0-0.1)*self.batch_y) + (1.0/self.batch_y.size(1)) /// (1 + (1 + self.batch_y)/2) *
         print(self.batch_y, torch.max(self.batch_y))
+        a, b, c, d = score
+        y = (self.batch_y + 1) / 2
+        s = (self.bce(a, y) + self.bce(b, y) + self.bce(c, y) + self.bce(d, y)) / 4
+        # torch.mean(self.criterion(score * self.batch_y))
         return (
-                torch.mean(self.criterion(score * self.batch_y)) + self.config.lmbda * regul + self.config.lmbda * regul2
+                s + self.config.lmbda * regul + self.config.lmbda * regul2
         )
 
     def forward(self):
