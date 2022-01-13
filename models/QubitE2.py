@@ -78,16 +78,16 @@ class QubitE2(Model):
         # score_i = A * x_c + B * s_c + C * z_c - D * y_c
         # score_j = A * y_c - B * z_c + C * s_c + D * x_c
         # score_k = A * z_c + B * y_c - C * x_c + D * s_c
-        a = torch.sigmoid(A * t1)
-        b = torch.sigmoid(B * t2)
-        c = torch.sigmoid(C * t3)
-        d = torch.sigmoid(D * t4)
+        a = torch.sigmoid(torch.sum(A * t1, dim=-1))
+        b = torch.sigmoid(torch.sum(B * t2, dim=-1))
+        c = torch.sigmoid(torch.sum(C * t3, dim=-1))
+        d = torch.sigmoid(torch.sum(D * t4, dim=-1))
         # return -torch.sum(score_r, -1)
         return a, b, c, d
 
     def loss(self, score, regul, regul2):
         # self.batch_y = ((1.0-0.1)*self.batch_y) + (1.0/self.batch_y.size(1)) /// (1 + (1 + self.batch_y)/2) *
-        print(self.batch_y, torch.max(self.batch_y))
+        # print(self.batch_y, torch.max(self.batch_y))
         a, b, c, d = score
         y = (self.batch_y + 1) / 2
         s = (self.bce(a, y) + self.bce(b, y) + self.bce(c, y) + self.bce(d, y)) / 4
