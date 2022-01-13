@@ -64,13 +64,13 @@ class QubitE2(Model):
         r2 = r2 / r_norm
         r3 = r3 / r_norm
         r4 = r4 / r_norm
-        cos_psi = torch.cos(r_psi)
-        sin_psi = torch.sin(r_psi)
+        # cos_psi = torch.cos(r_psi)
+        # sin_psi = torch.sin(r_psi)
 
-        A = h1 * r1 - h2 * r2 - (h3 * r3 + h4 * r4) * cos_psi - (h3 * r4 - r3 * h4) * sin_psi
-        B = h1 * r2 + r1 * h2 + (h3 * r4 - r3 * h4) * cos_psi - (h3 * r3 + h4 * r4) * sin_psi
-        C = (h1 * r3 + r1 * h3) * cos_psi + h4 * r2 - r4 * h2 - (h1 * r4 + r1 * h4) * sin_psi
-        D = (h1 * r4 + r1 * h4) * cos_psi + h2 * r3 - r2 * h3 + (h1 * r3 + r1 * h3) * sin_psi
+        A = h1 * r1 - h2 * r2 - h3 * r3 - h4 * r4
+        B = h1 * r2 + r1 * h2 + h3 * r4 - r3 * h4
+        C = h1 * r3 + r1 * h3 + h4 * r2 - r4 * h2
+        D = h1 * r4 + r1 * h4 + h2 * r3 - r2 * h3
 
         score_r = (A * t1 + B * t2 + C * t3 + D * t4)
         # print(score_r.size())
@@ -80,7 +80,8 @@ class QubitE2(Model):
         return -torch.sum(score_r, -1)
 
     def loss(self, score, regul, regul2):
-        # self.batch_y = ((1.0-0.1)*self.batch_y) + (1.0/self.batch_y.size(1)) /// (1 + (1 + self.batch_y)/2) * 
+        # self.batch_y = ((1.0-0.1)*self.batch_y) + (1.0/self.batch_y.size(1)) /// (1 + (1 + self.batch_y)/2) *
+        print(self.batch_y, torch.max(self.batch_y))
         return (
                 torch.mean(self.criterion(score * self.batch_y)) + self.config.lmbda * regul + self.config.lmbda * regul2
         )
