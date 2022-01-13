@@ -17,7 +17,7 @@ class QubitE(Model):
         self.rel_ai = nn.Embedding(self.config.relTotal, self.config.hidden_size)
         self.rel_b = nn.Embedding(self.config.relTotal, self.config.hidden_size)
         self.rel_bi = nn.Embedding(self.config.relTotal, self.config.hidden_size)
-        self.rel_w = nn.Embedding(self.config.relTotal, self.config.hidden_size)
+        self.rel_psi = nn.Embedding(self.config.relTotal, self.config.hidden_size)
         self.criterion = nn.Softplus()
         self.fc = nn.Linear(100, 50, bias=False)
         self.ent_dropout = torch.nn.Dropout(self.config.ent_dropout)
@@ -26,45 +26,46 @@ class QubitE(Model):
         self.init_weights()
 
     def init_weights(self):
-        if True:
-            r, i, j, k = self.quaternion_init(self.config.entTotal, self.config.hidden_size)
-            r, i, j, k = torch.from_numpy(r), torch.from_numpy(i), torch.from_numpy(j), torch.from_numpy(k)
-            self.entity_a.weight.data = r.type_as(self.entity_a.weight.data)
-            self.entity_ai.weight.data = i.type_as(self.entity_ai.weight.data)
-            self.entity_b.weight.data = j.type_as(self.entity_b.weight.data)
-            self.entity_bi.weight.data = k.type_as(self.entity_bi.weight.data)
+        r, i, j, k = self.init_as_unit_quaternion(self.config.entTotal, self.config.hidden_size)
+        r, i, j, k = torch.from_numpy(r), torch.from_numpy(i), torch.from_numpy(j), torch.from_numpy(k)
+        self.entity_a.weight.data = r.type_as(self.entity_a.weight.data)
+        self.entity_ai.weight.data = i.type_as(self.entity_ai.weight.data)
+        self.entity_b.weight.data = j.type_as(self.entity_b.weight.data)
+        self.entity_bi.weight.data = k.type_as(self.entity_bi.weight.data)
 
-            s, x, y, z = self.quaternion_init(self.config.entTotal, self.config.hidden_size)
-            s, x, y, z = torch.from_numpy(s), torch.from_numpy(x), torch.from_numpy(y), torch.from_numpy(z)
-            self.rel_a.weight.data = s.type_as(self.rel_a.weight.data)
-            self.rel_ai.weight.data = x.type_as(self.rel_ai.weight.data)
-            self.rel_b.weight.data = y.type_as(self.rel_b.weight.data)
-            self.rel_bi.weight.data = z.type_as(self.rel_bi.weight.data)
-            nn.init.xavier_uniform_(self.rel_w.weight.data)
-        else:
-            nn.init.xavier_uniform_(self.entity_a.weight.data)
-            nn.init.xavier_uniform_(self.entity_ai.weight.data)
-            nn.init.xavier_uniform_(self.entity_b.weight.data)
-            nn.init.xavier_uniform_(self.entity_bi.weight.data)
-            nn.init.xavier_uniform_(self.rel_a.weight.data)
-            nn.init.xavier_uniform_(self.rel_ai.weight.data)
-            nn.init.xavier_uniform_(self.rel_b.weight.data)
-            nn.init.xavier_uniform_(self.rel_bi.weight.data)
+        s, x, y, z = self.init_as_unit_quaternion(self.config.relTotal, self.config.hidden_size)
+        s, x, y, z = torch.from_numpy(s), torch.from_numpy(x), torch.from_numpy(y), torch.from_numpy(z)
+        self.rel_a.weight.data = s.type_as(self.rel_a.weight.data)
+        self.rel_ai.weight.data = x.type_as(self.rel_ai.weight.data)
+        self.rel_b.weight.data = y.type_as(self.rel_b.weight.data)
+        self.rel_bi.weight.data = z.type_as(self.rel_bi.weight.data)
+        nn.init.xavier_uniform_(self.rel_psi.weight.data)
 
     def _calc(self,
               h1, h2, h3, h4,
               t1, t2, t3, t4,
-              r1, r2, r3, r4
+              r1, r2, r3, r4, r_psi
               ):
         # h = (h1 + h2 i) |0> + (h3 + h4 i) |1>
         # t = (t1 + t2 i) |0> + (t3 + t4 i) |1>
-        # r = (h1 + h2 i) |0> + (h3 + h4 i) |1>
 
-        denominator_b = torch.sqrt(r1 ** 2 + r2 ** 2 + r3 ** 2 + r4 ** 2)
-        r1 = r1 / denominator_b
-        r2 = r2 / denominator_b
-        r3 = r3 / denominator_b
-        r4 = r4 / denominator_b
+        h_norm = torch.sqrt(h1 ** 2 + h2 ** 2 + h3 ** 2 + h4 ** 2).detach()
+        h1 = h1 / h_norm
+        h2 = h2 / h_norm
+        h3 = h3 / h_norm
+        h4 = h4 / h_norm
+        t_norm = torch.sqrt(t1 ** 2 + t2 ** 2 + t3 ** 2 + t4 ** 2).detach()
+        t1 = t1 / t_norm
+        t2 = t2 / t_norm
+        t3 = t3 / t_norm
+        t4 = t4 / t_norm
+        r_norm = torch.sqrt(r1 ** 2 + r2 ** 2 + r3 ** 2 + r4 ** 2).detach()
+        r1 = r1 / r_norm
+        r2 = r2 / r_norm
+        r3 = r3 / r_norm
+        r4 = r4 / r_norm
+        # cos_psi = torch.cos(r_psi)
+        # sin_psi = torch.sin(r_psi)
 
         A = h1 * r1 - h2 * r2 - h3 * r3 - h4 * r4
         B = h1 * r2 + r1 * h2 + h3 * r4 - r3 * h4
@@ -99,8 +100,9 @@ class QubitE(Model):
         r2 = self.rel_ai(self.batch_r)
         r3 = self.rel_b(self.batch_r)
         r4 = self.rel_bi(self.batch_r)
+        r_psi = self.rel_psi(self.batch_r)
 
-        score = self._calc(h1, h2, h3, h4, t1, t2, t3, t4, r1, r2, r3, r4)
+        score = self._calc(h1, h2, h3, h4, t1, t2, t3, t4, r1, r2, r3, r4, r_psi)
         regul = (torch.mean(torch.abs(h1) ** 2)
                  + torch.mean(torch.abs(h2) ** 2)
                  + torch.mean(torch.abs(h3) ** 2)
@@ -139,11 +141,12 @@ class QubitE(Model):
         r2 = self.rel_ai(self.batch_r)
         r3 = self.rel_b(self.batch_r)
         r4 = self.rel_bi(self.batch_r)
+        r_psi = self.rel_psi(self.batch_r)
 
-        score = self._calc(h1, h2, h3, h4, t1, t2, t3, t4, r1, r2, r3, r4)
+        score = self._calc(h1, h2, h3, h4, t1, t2, t3, t4, r1, r2, r3, r4, r_psi)
         return score.cpu().data.numpy()
 
-    def quaternion_init(self, in_features, out_features, criterion='he'):
+    def init_as_unit_quaternion(self, in_features, out_features, criterion='he'):
 
         fan_in = in_features
         fan_out = out_features
