@@ -82,10 +82,10 @@ class QubitE2(Model):
         # b = torch.sigmoid(torch.sum(B * t2, dim=-1))
         # c = torch.sigmoid(torch.sum(C * t3, dim=-1))
         # d = torch.sigmoid(torch.sum(D * t4, dim=-1))
-        a = -torch.tanh(torch.sum(A * t1, dim=-1))
-        b = -torch.tanh(torch.sum(B * t2, dim=-1))
-        c = -torch.tanh(torch.sum(C * t3, dim=-1))
-        d = -torch.tanh(torch.sum(D * t4, dim=-1))
+        a = -torch.tanh(torch.sum(A * t1, dim=-1)) * 1
+        b = -torch.tanh(torch.sum(B * t2, dim=-1)) * 1
+        c = -torch.tanh(torch.sum(C * t3, dim=-1)) * 1
+        d = -torch.tanh(torch.sum(D * t4, dim=-1)) * 1
         # return -torch.sum(score_r, -1)
         return a, b, c, d
 
