@@ -89,8 +89,8 @@ class QubitE2(Model):
         # self.batch_y = ((1.0-0.1)*self.batch_y) + (1.0/self.batch_y.size(1)) /// (1 + (1 + self.batch_y)/2) *
         # print(self.batch_y, torch.max(self.batch_y))
         a, b, c, d = score
-        y = (self.batch_y + 1) / 2
-        s = (self.bce(a, y) + self.bce(b, y) + self.bce(c, y) + self.bce(d, y)) / 4
+        y = (self.batch_y - 1) / 2
+        s = -(self.bce(a, y) + self.bce(b, y) + self.bce(c, y) + self.bce(d, y)) / 4
         # torch.mean(self.criterion(score * self.batch_y))
         return (
                 s + self.config.lmbda * regul + self.config.lmbda * regul2
@@ -156,7 +156,7 @@ class QubitE2(Model):
 
         score = self._calc(h1, h2, h3, h4, t1, t2, t3, t4, r1, r2, r3, r4, r_psi)
         a, b, c, d = score
-        score = (a + b + c + d) / 4
+        score = -(a + b + c + d) / 4
         return score.cpu().data.numpy()
 
     def init_as_unit_quaternion(self, in_features, out_features, criterion='he'):
