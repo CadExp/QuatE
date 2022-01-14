@@ -155,6 +155,8 @@ class QubitE2(Model):
         r_psi = self.rel_psi(self.batch_r)
 
         score = self._calc(h1, h2, h3, h4, t1, t2, t3, t4, r1, r2, r3, r4, r_psi)
+        a, b, c, d = score
+        score = (a + b + c + d) / 4
         return score.cpu().data.numpy()
 
     def init_as_unit_quaternion(self, in_features, out_features, criterion='he'):
