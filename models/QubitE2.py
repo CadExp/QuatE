@@ -78,10 +78,14 @@ class QubitE2(Model):
         # score_i = A * x_c + B * s_c + C * z_c - D * y_c
         # score_j = A * y_c - B * z_c + C * s_c + D * x_c
         # score_k = A * z_c + B * y_c - C * x_c + D * s_c
-        a = torch.sigmoid(torch.sum(A * t1, dim=-1))
-        b = torch.sigmoid(torch.sum(B * t2, dim=-1))
-        c = torch.sigmoid(torch.sum(C * t3, dim=-1))
-        d = torch.sigmoid(torch.sum(D * t4, dim=-1))
+        # a = torch.sigmoid(torch.sum(A * t1, dim=-1))
+        # b = torch.sigmoid(torch.sum(B * t2, dim=-1))
+        # c = torch.sigmoid(torch.sum(C * t3, dim=-1))
+        # d = torch.sigmoid(torch.sum(D * t4, dim=-1))
+        a = -torch.tanh(torch.sum(A * t1, dim=-1))
+        b = -torch.tanh(torch.sum(B * t2, dim=-1))
+        c = -torch.tanh(torch.sum(C * t3, dim=-1))
+        d = -torch.tanh(torch.sum(D * t4, dim=-1))
         # return -torch.sum(score_r, -1)
         return a, b, c, d
 
@@ -89,8 +93,9 @@ class QubitE2(Model):
         # self.batch_y = ((1.0-0.1)*self.batch_y) + (1.0/self.batch_y.size(1)) /// (1 + (1 + self.batch_y)/2) *
         # print(self.batch_y, torch.max(self.batch_y))
         a, b, c, d = score
-        y = (self.batch_y - 1) / 2
-        s = -(self.bce(a, y) + self.bce(b, y) + self.bce(c, y) + self.bce(d, y)) / 4
+        # y = (self.batch_y - 1) / 2
+        # s = -(self.bce(a, y) + self.bce(b, y) + self.bce(c, y) + self.bce(d, y)) / 4
+        s = (self.criterion(a * self.batch_y) + self.criterion(b * self.batch_y) + self.criterion(c * self.batch_y) + self.criterion(d * self.batch_y)) / 4
         # torch.mean(self.criterion(score * self.batch_y))
         return (
                 s + self.config.lmbda * regul + self.config.lmbda * regul2
@@ -156,7 +161,7 @@ class QubitE2(Model):
 
         score = self._calc(h1, h2, h3, h4, t1, t2, t3, t4, r1, r2, r3, r4, r_psi)
         a, b, c, d = score
-        score = -(a + b + c + d) / 4
+        score = (a + b + c + d) / 4
         return score.cpu().data.numpy()
 
     def init_as_unit_quaternion(self, in_features, out_features, criterion='he'):
