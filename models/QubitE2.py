@@ -18,6 +18,11 @@ class QubitE2(Model):
         self.rel_b = nn.Embedding(self.config.relTotal, self.config.hidden_size)
         self.rel_bi = nn.Embedding(self.config.relTotal, self.config.hidden_size)
         self.rel_psi = nn.Embedding(self.config.relTotal, self.config.hidden_size)
+
+        self.bias_1 = nn.Parameter(torch.zeros(1))
+        self.bias_2 = nn.Parameter(torch.zeros(1))
+        self.bias_3 = nn.Parameter(torch.zeros(1))
+        self.bias_4 = nn.Parameter(torch.zeros(1))
         self.criterion = nn.Softplus()
         self.bce = nn.BCELoss()
         self.fc = nn.Linear(100, 50, bias=False)
@@ -82,10 +87,14 @@ class QubitE2(Model):
         # b = torch.sigmoid(torch.sum(B * t2, dim=-1))
         # c = torch.sigmoid(torch.sum(C * t3, dim=-1))
         # d = torch.sigmoid(torch.sum(D * t4, dim=-1))
-        a = torch.tanh(torch.sum(A * t1, dim=-1)) * -1
-        b = torch.tanh(torch.sum(B * t2, dim=-1)) * -1
-        c = torch.tanh(torch.sum(C * t3, dim=-1)) * -1
-        d = torch.tanh(torch.sum(D * t4, dim=-1)) * -1
+        s1 = torch.sum(A * t1, dim=-1)
+        s2 = torch.sum(B * t2, dim=-1)
+        s3 = torch.sum(C * t3, dim=-1)
+        s4 = torch.sum(D * t4, dim=-1)
+        a = torch.tanh(s1 + self.bias_1.expand_as(s1)) * -1
+        b = torch.tanh(s2 + self.bias_2.expand_as(s2)) * -1
+        c = torch.tanh(s3 + self.bias_3.expand_as(s3)) * -1
+        d = torch.tanh(s4 + self.bias_4.expand_as(s4)) * -1
         # return -torch.sum(score_r, -1)
         return a, b, c, d
 
