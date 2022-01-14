@@ -96,7 +96,7 @@ class QubitE2(Model):
         # y = (self.batch_y - 1) / 2
         # s = -(self.bce(a, y) + self.bce(b, y) + self.bce(c, y) + self.bce(d, y)) / 4
         s = (self.criterion(a * self.batch_y) + self.criterion(b * self.batch_y) + self.criterion(c * self.batch_y) + self.criterion(d * self.batch_y)) / 4
-        print(s.shape)
+        print(a.shape, s.shape)
         # torch.mean(self.criterion(score * self.batch_y))
         return (
                 s + self.config.lmbda * regul + self.config.lmbda * regul2
